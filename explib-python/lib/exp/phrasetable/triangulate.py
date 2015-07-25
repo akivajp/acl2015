@@ -409,22 +409,39 @@ def pivotRecPairs(workset):
                 records = bestRecords
             if workset.multiTarget:
                 if len(multiRecords) > workset.nbest:
+                    # T1-filtering method
+                    bestTrgRecords = {}
                     # first, filtering src-pvt-trg records including n-best src-trg records
-                    bestRecords = {}
                     for multiKey, recMulti in multiRecords.items():
                         for rec in records.values():
                             if multiKey.find(rec.trg + ' |COL|') == 0:
-                                bestRecords[multiKey] = recMulti
-                    multiRecords = bestRecords
+                                bestTrgRecords.setdefault(rec.trg, [])
+                                bestTrgRecords[rec.trg].append(recMulti)
+                    bestMultiRecords = {}
                     # second, filtering n-best by forward joint trans probs
+                    for trgKey, multiList in bestTrgRecords.items():
+                        bestMultiRec = None
+                        bestForwardJointTransProb = 0
+                        for multiRec in multiList:
+                            if multiRec.features['egfp'] > bestForwardJointTransProb:
+                                bestMultiRec = multiRec
+                                bestForwardJointTransProb = multiRec.features['egfp']
+                        if bestMultiRec:
+                            bestMultiRecords[bestMultiRec.trg] = bestMultiRec
+                    # filling n-best records by (s->t,s->t,p)
                     scores = []
                     for multiKey, recMulti in multiRecords.items():
-                        scores.append( (recMulti.features['egfp'],multiKey) )
+                        scores.append( (recMulti.features['0egfp'],recMulti.features['egfp'],multiKey) )
                     scores.sort(reverse = True)
-                    bestRecords = {}
-                    for _, multiKey in scores[None:workset.nbest]:
-                        bestRecords[multiKey] = multiRecords[multiKey]
-                    multiRecords = bestRecords
+                    for _, _, multiKey in scores:
+                        if len(bestMultiRecords) >= workset.nbest:
+                            break
+                        else:
+                            if multiKey in bestMultiRecords:
+                                pass
+                            else:
+                                bestMultiRecords[multiKey] = multiRecords[multiKey]
+                    multiRecords = bestMultiRecords
         if workset.multiTarget:
             records = multiRecords
         # putting the records into outQueue, and other process will write them in table file

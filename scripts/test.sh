@@ -49,15 +49,17 @@ else
 fi
 
 if [ "${score}" ]; then
-  show_exec ${BIN}/mt-evaluator -ref ${ref} ${output} \| tee ${score}
   if [ "${opt_trg_factors}" ]; then
-    for i in $(seq 0 1); do
-      score_i=${workdir}/score-${test_name}${i}.out
-      show_exec ${BIN}/mt-evaluator -eval "'bleu:factor=${i} ribes:factor=${i}'" -ref ${ref} ${output} \| tee ${score_i}
-    done
+      show_exec ${BIN}/mt-evaluator -eval "'bleu:factor=0 ribes:factor=0'" -ref ${ref} ${output} \| tee ${score}
+#    for i in $(seq 0 1); do
+#      score_i=${workdir}/score-${test_name}${i}.out
+#      show_exec ${BIN}/mt-evaluator -eval "'bleu:factor=${i} ribes:factor=${i}'" -ref ${ref} ${output} \| tee ${score_i}
+#    done
 #  else
 #    show_exec ${BIN}/mt-evaluator -ref ${ref} ${output} \> ${score}
 #    cat ${score}
+  else
+    show_exec ${BIN}/mt-evaluator -ref ${ref} ${output} \| tee ${score}
   fi
 else
   show_exec ${BIN}/mt-evaluator -ref ${ref} ${output}
